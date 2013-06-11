@@ -1,0 +1,20 @@
+# depslib dependency file v1.0
+1370936306 source:c:\projects\siwir2\ex03cb\lbmgrid.cpp
+
+1370937884 source:c:\projects\siwir2\ex03cb\lbm.cpp
+	"LBM.h"
+	<fstream>
+	<sstream>
+	<iostream>
+	<stdlib.h>
+
+1370943561 c:\projects\siwir2\ex03cb\lbm.h
+	<iostream>
+	"LBMGrid.h"
+
+1370943341 c:\projects\siwir2\ex03cb\lbmgrid.h
+
+1370937895 source:c:\projects\siwir2\ex03cb\main.cpp
+	<iostream>
+	"LBM.h"
+
