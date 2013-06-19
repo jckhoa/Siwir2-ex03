@@ -42,6 +42,7 @@ public:
         else
             return data[y*sizex*numDirections + x*numDirections + direction];
         */
+
         //stream optimal
         int index = direction*sizex*sizey + y*sizex + x;
         if (index>=dataSize || index<0){
@@ -60,29 +61,8 @@ public:
     inttype GetSize(){return dataSize;}
     inttype GetSizeX(){return sizex;}
     inttype GetSizeY(){return sizey;}
-    void Print(){
-        for (int x=0; x<sizex; ++x){
-            for (int y=0; y<sizey; ++y){
-                if (numDirections>1){
-                    cout<<" (";
-                    for (int dir = 0; dir<numDirections-1; ++dir)
-                        if ((*this)(x,y,dir)<1.0e-10)
-                            cout<<"0.00, ";
-                        else
-                            cout<<setprecision(3)<< (*this)(x,y,dir)<<",";
-                    if ((*this)(x,y,numDirections-1)<1.0e-10)
-                        cout<<"0.00, ";
-                    else
-                    cout<<(*this)(x,y,numDirections-1)<<") ";
-                }
-                else
-                    cout<<" "<<(*this)(x,y,0)<<" ";
-                cout<<endl;
-            }
-        }
-    }
-    
-    void swap( LBMGrid<TYPE> & grid ) 
+
+    void swap( LBMGrid<TYPE> & grid )
     {
       std::swap( sizex,grid.sizex );
       std::swap( sizey, grid.sizey );
@@ -91,9 +71,9 @@ public:
       std::swap( data, grid.data );
       std::swap( dummy, grid.dummy );
     }
-    
 
-    
+
+
 private:
     inttype sizex,sizey,numDirections;
     inttype dataSize;

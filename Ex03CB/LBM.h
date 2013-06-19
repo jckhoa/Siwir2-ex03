@@ -16,7 +16,7 @@ struct Coordinates{
 
 class LBM{
 public:
-    LBM():sizex(0),sizey(0),numDirection(9),omega(0.0),c(1.0),timesteps(0),uwx(-0.26),uwy(0.0)
+    LBM():sizex(0),sizey(0),numDirection(9),omega(0.0),c(1.0),timesteps(0),uwx(0.08),uwy(0.0)
                     ,vtk_file(""),vtk_step(0),geometry(""){};
     ~LBM(){};
     void ReadFile(string filename);

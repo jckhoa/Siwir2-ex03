@@ -5,10 +5,11 @@
 #include <stdlib.h>
 #include <iomanip>
 
-
+enum NAVIGATION{C,E,NE,N,NW,W,SW,S,SE};
 Coordinates<inttype> directionVec9[9] ={Coordinates<inttype>(0,0),Coordinates<inttype>(1,0),Coordinates<inttype>(1,1),
         Coordinates<inttype>(0,1),Coordinates<inttype>(-1,1),Coordinates<inttype>(-1,0),
         Coordinates<inttype>(-1,-1),Coordinates<inttype>(0,-1),Coordinates<inttype>(1,-1)};
+
 realtype talpha9[9] = {4.0/9, 1.0/9, 1.0/36,
                         1.0/9, 1.0/36, 1.0/9,
                         1.0/36, 1.0/9, 1.0/36};
@@ -26,178 +27,139 @@ void LBM::Solve(){
     u.SetValue(0.0);
     flags.SetValue(1.0);
     density.SetValue(1.0);
-    for (int x=1; x<=sizex; ++x){
-        for (int y=1; y<=sizey; ++y){
-            f(x,y,0) = 4.0/9*density(x,y);
-            f(x,y,1) = f(x,y,3) = f(x,y,5) = f(x,y,7) = 1.0/9*density(x,y);
-            f(x,y,2) = f(x,y,4) = f(x,y,6) = f(x,y,8) = 1.0/36*density(x,y);
+    //Initialize all f to equilibrium state
+    for (int y=1; y<=sizey; ++y){
+        for (int x=1; x<=sizex; ++x){
+            f(x,y,C) = 4.0/9*density(x,y);
+            f(x,y,E) = f(x,y,N) = f(x,y,W) = f(x,y,S) = 1.0/9*density(x,y);
+            f(x,y,NE) = f(x,y,NW) = f(x,y,SW) = f(x,y,SE) = 1.0/36*density(x,y);
         }
     }
 
     int vtk_count = 0;
     for (int t=0;t<timesteps;++t){
-
-        //cout<<"Before boundary handling"<<endl;
-       // f.Print();
         HandleBoundary();
-        realtype sumf = 0;
-        for (int x=1; x<=sizex; ++x){
-            for (int y=1; y<=sizey; ++y){
-                for (int dir=0; dir<9; ++dir)
-                    sumf += f(x,y,dir);
-            }
-        }
-        cout<<"sumf = "<<sumf<<endl;
-        //cout<<"Before streaming"<<endl;
-       // f.Print();
         Stream();
-
-        //cout<<"After streaming"<<endl;
-        //f.Print();
         UpdateDensity();
-        sumf = 0;
-        for (int x=1; x<=sizex; ++x){
-            for (int y=1; y<=sizey; ++y){
-                sumf += density(x,y);
-            }
-        }
-        cout<<"sumf = "<<sumf<<endl;
         UpdateVelocity();
         Collide();
-
         if (t % vtk_step == 0 && t>0){
             outfilename.str("");
             outfilename<<vtk_file.substr(0,vtk_file.size()-4)<<t<<".vtk";
             WriteVTK(outfilename.str());
         }
-      //  f.Print();
     }
 
 }
 void LBM::Stream(){
-    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
     ftemp.SetValue(0);
     for (int dir=0; dir<numDirection; ++dir){
-        for (int x=1; x<=sizex; ++x){
-            for (int y=1; y<=sizey; ++y){
+        for (int y=1; y<=sizey; ++y){
+            for (int x=1; x<=sizex; ++x){
                 ftemp(x,y,dir) = f(x-directionVec9[dir].x,y-directionVec9[dir].y,dir);
             }
         }
     }
-    /*
-    for (int dir=0; dir<numDirection; ++dir){
-        cout<<"dir = "<<dir<<endl;
-        cout<<"f = "<<endl;
-        for (int y=sizey+1; y>=0; --y){
-            for (int x=0; x<=sizex+1; ++x){
-                if (f(x,y,dir)<1e-10)
-                    cout<<"0.000 ";
-                else
-                    cout<<setprecision(3)<<f(x,y,dir)<<" ";
-            }
-            cout<<endl;
-        }
-        cout<<"ftemp = "<<endl;
-        for (int y=sizey+1; y>=0; --y){
-            for (int x=0; x<=sizex+1; ++x){
-                if (f(x,y,dir)<1e-10)
-                    cout<<"0.000 ";
-                else
-                    cout<<setprecision(3)<<f(x,y,dir)<<" ";
-            }
-            cout<<endl;
-        }
-    }
-    */
     swap(f,ftemp);
 }
 
 void LBM::UpdateDensity(){
-    for (int x=1; x<=sizex; ++x){
-        for (int y=1; y<=sizey; ++y){
+    //break the loops for the sake of performance. The code length is longer but faster
+    for (int y=1; y<=sizey; ++y){
+        for (int x=1; x<=sizex; ++x){
             density(x,y) = 0;
-            for (int dir=0; dir<numDirection; ++dir){
+        }
+    }
+    for (int dir=0; dir<numDirection; ++dir){
+        for (int y=1; y<=sizey; ++y){
+            for (int x=1; x<=sizex; ++x){
                 density(x,y) += f(x,y,dir);
             }
         }
     }
 }
 void LBM::UpdateVelocity(){
-    for (int x=1; x<=sizex; ++x){
+    //break the loops for the sake of performance. The code length is longer but faster
+    for (int dir = 0; dir<2; ++dir){
         for (int y=1; y<=sizey; ++y){
-            u(x,y,0) = 0.0;
-            u(x,y,1) = 0.0;
-            for (int dir=0; dir<numDirection; ++dir){
+            for (int x=1; x<=sizex; ++x){
+                u(x,y,dir) = 0.0;
+            }
+        }
+    }
+    for (int dir=0; dir<numDirection; ++dir){
+        for (int y=1; y<=sizey; ++y){
+            for (int x=1; x<=sizex; ++x){
                 u(x,y,0) += f(x,y,dir)*directionVec9[dir].x;
+            }
+        }
+    }
+    for (int dir=0; dir<numDirection; ++dir){
+        for (int y=1; y<=sizey; ++y){
+            for (int x=1; x<=sizex; ++x){
                 u(x,y,1) += f(x,y,dir)*directionVec9[dir].y;
             }
-            u(x,y,0) = u(x,y,0)/density(x,y);
-            u(x,y,1) = u(x,y,1)/density(x,y);
+        }
+    }
+    for (int dir = 0; dir<2; ++dir){
+        for (int y=1; y<=sizey; ++y){
+            for (int x=1; x<=sizex; ++x){
+                u(x,y,dir) /= density(x,y);
+            }
         }
     }
 }
 
 void LBM::Collide(){
-    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
-    ftemp.SetValue(0);
-    for (int x=1; x<=sizex; ++x){
+    for (int dir=0; dir<numDirection; ++dir){
         for (int y=1; y<=sizey; ++y){
-            for (int dir=0; dir<numDirection; ++dir){
+            for (int x=1; x<=sizex; ++x){
                 realtype cAlphaU = directionVec9[dir].x*u(x,y,0)+directionVec9[dir].y*u(x,y,1);
                 realtype u2 = u(x,y,0)*u(x,y,0)+u(x,y,1)*u(x,y,1);
-                realtype fequilibrium = talpha9[dir]*(density(x,y) + 3/c/c*cAlphaU
-                                            +9.0/2/c/c/c/c*cAlphaU*cAlphaU-3.0/2*u2/2/c/c);
-                ftemp(x,y,dir) = (1-omega)*f(x,y,dir)+omega*fequilibrium;
+                realtype fequilibrium = talpha9[dir]*(density(x,y) + 3*cAlphaU
+                                            +9.0/2*cAlphaU*cAlphaU-3.0/2*u2);
+                f(x,y,dir) = (1-omega)*f(x,y,dir)+omega*fequilibrium;
             }
         }
     }
-    swap(f,ftemp);
 }
 void LBM::HandleBoundary(){
-    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
-    for (int x=1; x<=sizex; ++x){
-        for (int y=1; y<=sizey; ++y){
-            for (int dir=0; dir<9; ++dir){
-                ftemp(x,y,dir) = f(x,y,dir);
-            }
-        }
 
-    }
     //left boundary
     for (int y=1; y <= sizey; ++y){
-        ftemp(0,y,2) = f(1,y+1,6);
-        ftemp(0,y,1) = f(1,y,5);
-        ftemp(0,y,8) = f(1,y-1,4);
+        f(0,y,NE) = f(1,y+1,SW);
+        f(0,y,E) = f(1,y,W);
+        f(0,y,SE) = f(1,y-1,NW);
     }
-    ftemp(0,0,2) = f(1,1,6); //left bottom corner
+    f(0,0,NE) = f(1,1,SW); //left bottom corner
 
     //right boundary
     for (int y=1; y <= sizey; ++y){
-        ftemp(sizex+1,y,4) = f(sizex,y+1,8);
-        ftemp(sizex+1,y,5) = f(sizex,y,1);
-        ftemp(sizex+1,y,6) = f(sizex,y-1,2);
+        f(sizex+1,y,NW) = f(sizex,y+1,SE);
+        f(sizex+1,y,W) = f(sizex,y,E);
+        f(sizex+1,y,SW) = f(sizex,y-1,NE);
     }
 
-    ftemp(sizex+1,0,4) = f(sizex,1,8); //right bottom corner
+    f(sizex+1,0,NW) = f(sizex,1,SE); //right bottom corner
 
     //bottom boundary
     for (int x=1; x <= sizex; ++x){
-        ftemp(x,0,4) = f(x-1,1,8);
-        ftemp(x,0,3) = f(x,1,7);
-        ftemp(x,0,2) = f(x+1,1,6);
+        f(x,0,NW) = f(x-1,1,SE);
+        f(x,0,N) = f(x,1,S);
+        f(x,0,NE) = f(x+1,1,SW);
     }
 
     //top boundary (moving lid)
     for (int x=1; x<=sizex; ++x){
-        ftemp(x,sizey+1,6) = f(x-1,sizey,2) + 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy);
-        ftemp(x,sizey+1,7) = f(x,sizey,3) + 2*talpha9[7]*3/c/c*(directionVec9[7].x*uwx+directionVec9[7].y*uwy);
-        ftemp(x,sizey+1,8) = f(x+1,sizey,4) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy);
+        f(x,sizey+1,SW) = f(x-1,sizey,NE) - 2*talpha9[NE]*3/c/c*(directionVec9[NE].x * uwx + directionVec9[NE].y * uwy);
+        f(x,sizey+1,S) = f(x,sizey,N) - 2*talpha9[N]*3/c/c*(directionVec9[N].x * uwx + directionVec9[N].y * uwy);
+        f(x,sizey+1,SE) = f(x+1,sizey,NW) - 2*talpha9[NW]*3/c/c*(directionVec9[NW].x *uwx + directionVec9[NW].y * uwy);
 
     }
 
-    ftemp(0,sizey+1,8) = f(1,sizey,4) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy); //left top corner
-    ftemp(sizex+1,sizey+1,6) = f(sizex,sizey,2)+ 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy); //right top corner
-    swap(f,ftemp);
+    f(0,sizey+1,SE) = f(1,sizey,NW) - 2*talpha9[NW]*3/c/c*(directionVec9[NW].x*uwx+directionVec9[NW].y*uwy); //left top corner
+    f(sizex+1,sizey+1,6) = f(sizex,sizey,2) - 2*talpha9[2]*3/c/c*(directionVec9[2].x*uwx+directionVec9[2].y*uwy); //right top corner
+
 }
 
 template<typename TYPE>
@@ -206,8 +168,8 @@ void LBM::WriteVTKdata(ostream& outfile, string type, string paramName, string d
     if (type == "SCALARS"){
         outfile<<type<<" "<<paramName<<" "<<dataType<<" 1"<<endl;
         outfile<<"LOOKUP_TABLE default"<<endl;
-        for (int x=1; x< data.GetSizeX()-1; ++x){
-            for (int y=1; y< data.GetSizeY()-1; ++y){
+        for (int y=1; y< data.GetSizeY()-1; ++y){
+            for (int x=1; x< data.GetSizeX()-1; ++x){
                 outfile<<data(x,y)<<endl;
                 //cout<<"("<<x<<" ,"<<y<<")"<<endl;
             }
@@ -215,8 +177,8 @@ void LBM::WriteVTKdata(ostream& outfile, string type, string paramName, string d
     }
     else if (type == "VECTORS"){
         outfile<<type<<" "<<paramName<<" "<<dataType<<endl;
-        for (int x=1; x< data.GetSizeX()-1; ++x){
-            for (int y=1; y< data.GetSizeY()-1; ++y){
+        for (int y=1; y< data.GetSizeY()-1; ++y){
+            for (int x=1; x< data.GetSizeX()-1; ++x){
                 outfile<<data(x,y,0)<<" "<<data(x,y,1)<<" 0"<<endl;
             }
         }
