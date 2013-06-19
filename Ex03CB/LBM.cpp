@@ -3,7 +3,7 @@
 #include <sstream>
 #include <iostream>
 #include <stdlib.h>
-
+#include <iomanip>
 
 
 Coordinates<inttype> directionVec9[9] ={Coordinates<inttype>(0,0),Coordinates<inttype>(1,0),Coordinates<inttype>(1,1),
@@ -36,18 +36,11 @@ void LBM::Solve(){
 
     int vtk_count = 0;
     for (int t=0;t<timesteps;++t){
-        realtype sumf = 0;
-        for (int x=1; x<=sizex; ++x){
-            for (int y=1; y<=sizey; ++y){
-                for (int dir=0; dir<9; ++dir)
-                    sumf += f(x,y,dir);
-            }
-        }
-        cout<<"sumf = "<<sumf<<endl;
+
         //cout<<"Before boundary handling"<<endl;
        // f.Print();
         HandleBoundary();
-        sumf = 0;
+        realtype sumf = 0;
         for (int x=1; x<=sizex; ++x){
             for (int y=1; y<=sizey; ++y){
                 for (int dir=0; dir<9; ++dir)
@@ -58,17 +51,17 @@ void LBM::Solve(){
         //cout<<"Before streaming"<<endl;
        // f.Print();
         Stream();
-        sumf = 0;
-        for (int x=1; x<=sizex; ++x){
-            for (int y=1; y<=sizey; ++y){
-                for (int dir=0; dir<9; ++dir)
-                    sumf += f(x,y,dir);
-            }
-        }
-        cout<<"sumf = "<<sumf<<endl;
+
         //cout<<"After streaming"<<endl;
         //f.Print();
         UpdateDensity();
+        sumf = 0;
+        for (int x=1; x<=sizex; ++x){
+            for (int y=1; y<=sizey; ++y){
+                sumf += density(x,y);
+            }
+        }
+        cout<<"sumf = "<<sumf<<endl;
         UpdateVelocity();
         Collide();
 
@@ -84,13 +77,38 @@ void LBM::Solve(){
 void LBM::Stream(){
     //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
     ftemp.SetValue(0);
-    for (int x=1; x<=sizex; ++x){
-        for (int y=1; y<=sizey; ++y){
-            for (int dir=0; dir<numDirection; ++dir){
+    for (int dir=0; dir<numDirection; ++dir){
+        for (int x=1; x<=sizex; ++x){
+            for (int y=1; y<=sizey; ++y){
                 ftemp(x,y,dir) = f(x-directionVec9[dir].x,y-directionVec9[dir].y,dir);
             }
         }
     }
+    /*
+    for (int dir=0; dir<numDirection; ++dir){
+        cout<<"dir = "<<dir<<endl;
+        cout<<"f = "<<endl;
+        for (int y=sizey+1; y>=0; --y){
+            for (int x=0; x<=sizex+1; ++x){
+                if (f(x,y,dir)<1e-10)
+                    cout<<"0.000 ";
+                else
+                    cout<<setprecision(3)<<f(x,y,dir)<<" ";
+            }
+            cout<<endl;
+        }
+        cout<<"ftemp = "<<endl;
+        for (int y=sizey+1; y>=0; --y){
+            for (int x=0; x<=sizex+1; ++x){
+                if (f(x,y,dir)<1e-10)
+                    cout<<"0.000 ";
+                else
+                    cout<<setprecision(3)<<f(x,y,dir)<<" ";
+            }
+            cout<<endl;
+        }
+    }
+    */
     swap(f,ftemp);
 }
 
@@ -147,43 +165,38 @@ void LBM::HandleBoundary(){
     }
     //left boundary
     for (int y=1; y <= sizey; ++y){
-        ftemp(0,y,2) = f(1,y-1,4);
+        ftemp(0,y,2) = f(1,y+1,6);
         ftemp(0,y,1) = f(1,y,5);
-        ftemp(0,y,8) = f(1,y+1,6);
+        ftemp(0,y,8) = f(1,y-1,4);
     }
     ftemp(0,0,2) = f(1,1,6); //left bottom corner
 
     //right boundary
     for (int y=1; y <= sizey; ++y){
-        ftemp(sizex+1,y,4) = f(sizex,y-1,2);
+        ftemp(sizex+1,y,4) = f(sizex,y+1,8);
         ftemp(sizex+1,y,5) = f(sizex,y,1);
-        ftemp(sizex+1,y,6) = f(sizex,y+1,8);
+        ftemp(sizex+1,y,6) = f(sizex,y-1,2);
     }
 
     ftemp(sizex+1,0,4) = f(sizex,1,8); //right bottom corner
 
     //bottom boundary
     for (int x=1; x <= sizex; ++x){
-        ftemp(x,0,4) = f(x+1,1,6);
+        ftemp(x,0,4) = f(x-1,1,8);
         ftemp(x,0,3) = f(x,1,7);
-        ftemp(x,0,2) = f(x-1,1,8);
+        ftemp(x,0,2) = f(x+1,1,6);
     }
 
     //top boundary (moving lid)
     for (int x=1; x<=sizex; ++x){
-        //f(x,sizey+1,6) = f(x+1,sizey,4) + 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy);
-        //f(x,sizey+1,7) = f(x,sizey,3) + 2*talpha9[7]*3/c/c*(directionVec9[7].x*uwx+directionVec9[7].y*uwy);
-        //f(x,sizey+1,8) = f(x-1,sizey,2) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy);
-        ftemp(x,sizey+1,6) = f(x+1,sizey,4);
-        ftemp(x,sizey+1,7) = f(x,sizey,3);
-        ftemp(x,sizey+1,8) = f(x-1,sizey,2);
+        ftemp(x,sizey+1,6) = f(x-1,sizey,2) + 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy);
+        ftemp(x,sizey+1,7) = f(x,sizey,3) + 2*talpha9[7]*3/c/c*(directionVec9[7].x*uwx+directionVec9[7].y*uwy);
+        ftemp(x,sizey+1,8) = f(x+1,sizey,4) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy);
 
     }
 
-    //f(0,sizey+1,8) = f(1,sizey,4) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy); //left top corner
-    //f(sizex+1,sizey+1,6) = f(sizex,sizey,2)+ 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy); //right top corner
-    ftemp(0,sizey+1,8) = f(1,sizey,4);
-    ftemp(sizex+1,sizey+1,6) = f(sizex,sizey,2);
+    ftemp(0,sizey+1,8) = f(1,sizey,4) + 2*talpha9[8]*3/c/c*(directionVec9[8].x*uwx+directionVec9[8].y*uwy); //left top corner
+    ftemp(sizex+1,sizey+1,6) = f(sizex,sizey,2)+ 2*talpha9[6]*3/c/c*(directionVec9[6].x*uwx+directionVec9[6].y*uwy); //right top corner
     swap(f,ftemp);
 }
 
