@@ -40,7 +40,7 @@ private:
     string vtk_file;
     string geometry;
 
-    LBMGrid<realtype> f;
+    LBMGrid<realtype> f, ftemp;
     LBMGrid<realtype> u;
     LBMGrid<realtype> flags;
     LBMGrid<realtype> density;

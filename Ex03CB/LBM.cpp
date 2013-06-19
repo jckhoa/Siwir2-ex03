@@ -17,6 +17,7 @@ using namespace std;
 void LBM::Solve(){
     stringstream outfilename;
     f.SetParams(sizex+2,sizey+2,9);
+    ftemp.SetParams(sizex+2,sizey+2,9);
     u.SetParams(sizex+2,sizey+2,2);
     flags.SetParams(sizex+2,sizey+2,1);
     density.SetParams(sizex+2,sizey+2,1);
@@ -81,7 +82,7 @@ void LBM::Solve(){
 
 }
 void LBM::Stream(){
-    LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
+    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
     ftemp.SetValue(0);
     for (int x=1; x<=sizex; ++x){
         for (int y=1; y<=sizey; ++y){
@@ -119,7 +120,7 @@ void LBM::UpdateVelocity(){
 }
 
 void LBM::Collide(){
-    LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
+    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
     ftemp.SetValue(0);
     for (int x=1; x<=sizex; ++x){
         for (int y=1; y<=sizey; ++y){
@@ -135,7 +136,7 @@ void LBM::Collide(){
     swap(f,ftemp);
 }
 void LBM::HandleBoundary(){
-    LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
+    //LBMGrid<realtype> ftemp(sizex+2,sizey+2,numDirection);
     for (int x=1; x<=sizex; ++x){
         for (int y=1; y<=sizey; ++y){
             for (int dir=0; dir<9; ++dir){

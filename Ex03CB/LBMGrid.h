@@ -81,11 +81,30 @@ public:
             }
         }
     }
+    
+    void swap( LBMGrid<TYPE> & grid ) 
+    {
+      std::swap( sizex,grid.sizex );
+      std::swap( sizey, grid.sizey );
+      std::swap( numDirections, grid.numDirections );
+      std::swap( dataSize, grid.dataSize );
+      std::swap( data, grid.data );
+      std::swap( dummy, grid.dummy );
+    }
+    
+
+    
 private:
     inttype sizex,sizey,numDirections;
     inttype dataSize;
     TYPE *data;
     TYPE dummy;
 };
+
+template<typename TYPE>
+inline void swap( LBMGrid<TYPE>& a, LBMGrid<TYPE>& b )
+{
+  a.swap(b);
+}
 
 #endif // LBMGRID_H_INCLUDED
