@@ -19,14 +19,17 @@ void LBM::Solve(){
     stringstream outfilename;
     f.SetParams(sizex+2,sizey+2,9);
     ftemp.SetParams(sizex+2,sizey+2,9);
+    utemp.SetParams(sizex+2,sizey+2,9);
     u.SetParams(sizex+2,sizey+2,2);
     flags.SetParams(sizex+2,sizey+2,1);
     density.SetParams(sizex+2,sizey+2,1);
-
+    densitytemp.SetParams(sizex+2,sizey+2,1);
     //Initialization
     u.SetValue(0.0);
+    utemp.SetValue(0.0);
     flags.SetValue(1.0);
     density.SetValue(1.0);
+    densitytemp.SetValue(1.0);
     //Initialize all f to equilibrium state
     for (int y=1; y<=sizey; ++y){
         for (int x=1; x<=sizex; ++x){
@@ -40,9 +43,12 @@ void LBM::Solve(){
     for (int t=0;t<timesteps;++t){
         HandleBoundary();
         Stream();
-        UpdateDensity();
-        UpdateVelocity();
+        UpdateDensity(density);
+        UpdateVelocity(u);
         Collide();
+        UpdateDensity(densitytemp);
+        UpdateVelocity(utemp);
+        //cout<<"density difference before and after collision: "<<GetDiff2D(u,utemp)<<endl;
         if (t % vtk_step == 0 && t>0){
             outfilename.str("");
             outfilename<<vtk_file.substr(0,vtk_file.size()-4)<<t<<".vtk";
@@ -53,7 +59,7 @@ void LBM::Solve(){
 }
 void LBM::Stream(){
     ftemp.SetValue(0);
-    for (int dir=0; dir<numDirection; ++dir){
+    for (int dir = 0; dir<numDirection; ++dir){
         for (int y=1; y<=sizey; ++y){
             for (int x=1; x<=sizex; ++x){
                 ftemp(x,y,dir) = f(x-directionVec9[dir].x,y-directionVec9[dir].y,dir);
@@ -63,13 +69,14 @@ void LBM::Stream(){
     swap(f,ftemp);
 }
 
-void LBM::UpdateDensity(){
+void LBM::UpdateDensity(LBMGrid<realtype> &density){
     //break the loops for the sake of performance. The code length is longer but faster
     for (int y=1; y<=sizey; ++y){
         for (int x=1; x<=sizex; ++x){
             density(x,y) = 0;
         }
     }
+
     for (int dir=0; dir<numDirection; ++dir){
         for (int y=1; y<=sizey; ++y){
             for (int x=1; x<=sizex; ++x){
@@ -78,7 +85,7 @@ void LBM::UpdateDensity(){
         }
     }
 }
-void LBM::UpdateVelocity(){
+void LBM::UpdateVelocity(LBMGrid<realtype> &u){
     //break the loops for the sake of performance. The code length is longer but faster
     for (int dir = 0; dir<2; ++dir){
         for (int y=1; y<=sizey; ++y){
@@ -116,8 +123,8 @@ void LBM::Collide(){
             for (int x=1; x<=sizex; ++x){
                 realtype cAlphaU = directionVec9[dir].x*u(x,y,0)+directionVec9[dir].y*u(x,y,1);
                 realtype u2 = u(x,y,0)*u(x,y,0)+u(x,y,1)*u(x,y,1);
-                realtype fequilibrium = talpha9[dir]*(density(x,y) + 3*cAlphaU
-                                            +9.0/2*cAlphaU*cAlphaU-3.0/2*u2);
+                //realtype fequilibrium = talpha9[dir]*(density(x,y) + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
+                realtype fequilibrium = talpha9[dir]*density(x,y)*(1 + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
                 f(x,y,dir) = (1-omega)*f(x,y,dir)+omega*fequilibrium;
             }
         }
@@ -151,14 +158,12 @@ void LBM::HandleBoundary(){
 
     //top boundary (moving lid)
     for (int x=1; x<=sizex; ++x){
-        f(x,sizey+1,SW) = f(x-1,sizey,NE) - 2*talpha9[NE]*3/c/c*(directionVec9[NE].x * uwx + directionVec9[NE].y * uwy);
-        f(x,sizey+1,S) = f(x,sizey,N) - 2*talpha9[N]*3/c/c*(directionVec9[N].x * uwx + directionVec9[N].y * uwy);
-        f(x,sizey+1,SE) = f(x+1,sizey,NW) - 2*talpha9[NW]*3/c/c*(directionVec9[NW].x *uwx + directionVec9[NW].y * uwy);
-
+        f(x,sizey+1,SW) = f(x-1,sizey,NE) - 2*talpha9[NE]*3*(directionVec9[NE].x * uwx + directionVec9[NE].y * uwy);
+        f(x,sizey+1,S) = f(x,sizey,N) - 2*talpha9[N]*3*(directionVec9[N].x * uwx + directionVec9[N].y * uwy);
+        f(x,sizey+1,SE) = f(x+1,sizey,NW) - 2*talpha9[NW]*3*(directionVec9[NW].x *uwx + directionVec9[NW].y * uwy);
     }
-
-    f(0,sizey+1,SE) = f(1,sizey,NW) - 2*talpha9[NW]*3/c/c*(directionVec9[NW].x*uwx+directionVec9[NW].y*uwy); //left top corner
-    f(sizex+1,sizey+1,6) = f(sizex,sizey,2) - 2*talpha9[2]*3/c/c*(directionVec9[2].x*uwx+directionVec9[2].y*uwy); //right top corner
+    f(0,sizey+1,SE) = f(1,sizey,NW) - 2*talpha9[NW]*3*(directionVec9[NW].x*uwx+directionVec9[NW].y*uwy); //left top corner
+    f(sizex+1,sizey+1,SW) = f(sizex,sizey,NE) - 2*talpha9[NE]*3*(directionVec9[NE].x*uwx+directionVec9[NE].y*uwy); //right top corner
 
 }
 

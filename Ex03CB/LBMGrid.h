@@ -62,6 +62,12 @@ public:
     inttype GetSizeX(){return sizex;}
     inttype GetSizeY(){return sizey;}
 
+    TYPE GetSum(){
+        TYPE sum = 0;
+        for (int i=0; i<dataSize; ++i)
+            sum += data[i];
+        return sum;
+    }
     void swap( LBMGrid<TYPE> & grid )
     {
       std::swap( sizex,grid.sizex );

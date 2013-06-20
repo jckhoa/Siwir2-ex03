@@ -16,7 +16,7 @@ struct Coordinates{
 
 class LBM{
 public:
-    LBM():sizex(0),sizey(0),numDirection(9),omega(0.0),c(1.0),timesteps(0),uwx(0.08),uwy(0.0)
+    LBM():sizex(0),sizey(0),numDirection(9),omega(0.0),timesteps(0),uwx(0.08),uwy(0.0)
                     ,vtk_file(""),vtk_step(0),geometry(""){};
     ~LBM(){};
     void ReadFile(string filename);
@@ -30,20 +30,59 @@ private:
     template<typename TYPE>
     void WriteVTKdata(ostream& outstream, string type, string paramName, string dataType, TYPE &data);
     void WriteVTK(string filename);
-    void UpdateDensity();   //update density
-    void UpdateVelocity();   //update u
+    void UpdateDensity(LBMGrid<realtype> &density);   //update density
+    void UpdateVelocity(LBMGrid<realtype> &u);   //update u
+    realtype GetSum1D(LBMGrid<realtype> &density){
+        realtype sum = 0;
+        for (int x=1; x<density.GetSizeX()-1; ++x)
+            for (int y=1; y<density.GetSizeY()-1; ++y)
+                sum += density(x,y);
+        return sum;
+    }
+    realtype GetDiff1D(LBMGrid<realtype> &density, LBMGrid<realtype> &densitytemp){
+        realtype sum = 0;
+        for (int x=1; x<density.GetSizeX()-1; ++x)
+            for (int y=1; y<density.GetSizeY()-1; ++y)
+                sum += (density(x,y)-densitytemp(x,y))*(density(x,y)-densitytemp(x,y));
+        return sum;
+    }
+    realtype GetDiff2D(LBMGrid<realtype> &u, LBMGrid<realtype> &utemp){
+        realtype sum = 0;
+        for (int x=1; x<u.GetSizeX()-1; ++x)
+            for (int y=1; y<u.GetSizeY()-1; ++y)
+                sum += (u(x,y,0)-utemp(x,y,0))*(u(x,y,1)-utemp(x,y,1));
+        return sum;
+    }
+    realtype GetSumF(){
+        realtype sum = 0;
+        for (int dir=0; dir< numDirection; ++dir){
+            for (int x=1; x<=sizex; ++x)
+                for (int y=1; y<=sizey; ++y)
+                    sum += f(x,y,dir);
+        }
+        return sum;
+    }
+    realtype GetSumVelocity(LBMGrid<realtype> &u){
+        realtype sum = 0;
+        for (int dir=0; dir< 2; ++dir){
+            for (int x=1; x<=sizex; ++x)
+                for (int y=1; y<=sizey; ++y)
+                    sum += u(x,y,dir)*u(x,y,dir);
+        }
+        return sum;
+    }
 
     inttype sizex, sizey, numDirection;
     inttype timesteps, vtk_step;
-    realtype omega, c;
+    realtype omega;
     realtype uwx, uwy;
     string vtk_file;
     string geometry;
 
     LBMGrid<realtype> f, ftemp;
-    LBMGrid<realtype> u;
+    LBMGrid<realtype> u, utemp;
     LBMGrid<realtype> flags;
-    LBMGrid<realtype> density;
+    LBMGrid<realtype> density, densitytemp;
 
 };
 
