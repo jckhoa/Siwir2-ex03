@@ -49,7 +49,7 @@ void LBM::Solve(){
         UpdateDensity(densitytemp);
         UpdateVelocity(utemp);
         //cout<<"density difference before and after collision: "<<GetDiff2D(u,utemp)<<endl;
-        if (t % vtk_step == 0 && t>0){
+        if (t % vtk_step == 0){
             outfilename.str("");
             outfilename<<vtk_file.substr(0,vtk_file.size()-4)<<t<<".vtk";
             WriteVTK(outfilename.str());
@@ -108,6 +108,7 @@ void LBM::UpdateVelocity(LBMGrid<realtype> &u){
             }
         }
     }
+    /*
     for (int dir = 0; dir<2; ++dir){
         for (int y=1; y<=sizey; ++y){
             for (int x=1; x<=sizex; ++x){
@@ -115,6 +116,7 @@ void LBM::UpdateVelocity(LBMGrid<realtype> &u){
             }
         }
     }
+    */
 }
 
 void LBM::Collide(){
@@ -123,8 +125,8 @@ void LBM::Collide(){
             for (int x=1; x<=sizex; ++x){
                 realtype cAlphaU = directionVec9[dir].x*u(x,y,0)+directionVec9[dir].y*u(x,y,1);
                 realtype u2 = u(x,y,0)*u(x,y,0)+u(x,y,1)*u(x,y,1);
-                //realtype fequilibrium = talpha9[dir]*(density(x,y) + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
-                realtype fequilibrium = talpha9[dir]*density(x,y)*(1 + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
+                realtype fequilibrium = talpha9[dir]*(density(x,y) + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
+                //realtype fequilibrium = talpha9[dir]*density(x,y)*(1 + 3*cAlphaU+9.0*cAlphaU*cAlphaU/2-3.0*u2/2);
                 f(x,y,dir) = (1-omega)*f(x,y,dir)+omega*fequilibrium;
             }
         }

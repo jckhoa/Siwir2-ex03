@@ -6,7 +6,7 @@ using namespace std;
 int main()
 {
     LBM lbm;
-    lbm.ReadFile("params.dat");
+    lbm.ReadFile("params_5x5.dat");
     lbm.Solve();
     return 0;
 }
