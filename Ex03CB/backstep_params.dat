@@ -1,0 +1,5 @@
+timesteps 1000
+omega 1.9
+vtk_file example.vtk
+vtk_step 10
+geometry backstep.pgm

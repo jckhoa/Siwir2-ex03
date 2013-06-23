@@ -5,7 +5,7 @@
 #include "LBMGrid.h"
 
 using namespace std;
-
+/*
 template<typename TYPE>
 struct Coordinates{
     Coordinates():x(0),y(0){};
@@ -13,15 +13,17 @@ struct Coordinates{
     ~Coordinates(){};
     TYPE x,y;
 };
+*/
+
 
 class LBM{
 public:
-    LBM():sizex(0),sizey(0),numDirection(9),omega(0.0),timesteps(0),uwx(0.08),uwy(0.0)
+    LBM():sizex(0),sizey(0),max_gray_level(0),numDirection(9),omega(0.0),timesteps(0),uwx(0.08),uwy(0.0)
                     ,vtk_file(""),vtk_step(0),geometry(""){};
     ~LBM(){};
     void ReadFile(string filename);
     void Solve();
-
+    int GetNumFluidCells();
 private:
     void Stream();
     void Collide();
@@ -72,17 +74,21 @@ private:
         return sum;
     }
 
+    //Read and write geometry information to grayscale bitmap format
+    void ReadPgm(const std::string filename);
+
     inttype sizex, sizey, numDirection;
     inttype timesteps, vtk_step;
+    inttype max_gray_level;
     realtype omega;
     realtype uwx, uwy;
     string vtk_file;
     string geometry;
 
     LBMGrid<realtype> f, ftemp;
-    LBMGrid<realtype> u, utemp;
+    LBMGrid<realtype> u;
     LBMGrid<realtype> flags;
-    LBMGrid<realtype> density, densitytemp;
+    LBMGrid<realtype> density;
 
 };
 

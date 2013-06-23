@@ -2,24 +2,32 @@
 #define LBMGRID_H_INCLUDED
 #include <iostream>
 #include <iomanip>
+#include <stdlib.h>
 
 typedef double realtype;
 typedef int inttype;
 
 using namespace std;
 
+enum LbmGridMode{COLLISION_OPTIMAL, STREAM_OPTIMAL};
+
 template<typename TYPE>
 class LBMGrid{
 public:
-    LBMGrid(inttype sizex, inttype sizey, inttype numDirections = 1): sizex(sizex), sizey(sizey), numDirections(numDirections),
+    LBMGrid(inttype sizex, inttype sizey, inttype numDirections = 1, LbmGridMode mode = COLLISION_OPTIMAL): sizex(sizex), sizey(sizey), numDirections(numDirections), mode(mode),
                                     dataSize(sizex*sizey*numDirections),data(new TYPE[sizex*sizey*numDirections]),
                                     dummy(0){};
-    LBMGrid():sizex(0),sizey(0),numDirections(0),data(0){};
-    void SetParams(inttype _sizex, inttype _sizey, inttype _numDirections = 1){
+    LBMGrid():sizex(0),sizey(0),numDirections(0),data(0),dataSize(0){};
+    void SetParams(inttype _sizex, inttype _sizey, inttype _numDirections = 1, LbmGridMode _mode = COLLISION_OPTIMAL){
         if (_sizex*_sizey*_numDirections >0)
             dataSize = _sizex*_sizey*_numDirections;
+        else{
+            cerr<<"LBMGrid.SetParams(...) failed the datasize is not a positive number"<<endl;
+            exit(-1);
+        }
         sizex = _sizex;
         sizey = _sizey;
+        mode = _mode;
         numDirections = _numDirections;
         if (data != 0) delete[] data;
         data = new TYPE[dataSize];
@@ -32,26 +40,28 @@ public:
     };
 
     TYPE& operator()(inttype x, inttype y, inttype direction = 0){
-        /*
-         //collision optimal
-        int index = y*sizex*numDirections + x*numDirections + direction;
-        if (index>=dataSize || index<0){
-            cerr<<"The index is out of range "<<endl;
-            return dummy;
+        if (mode == COLLISION_OPTIMAL){
+            int index = y*sizex*numDirections + x*numDirections + direction;
+            if (index>=dataSize || index<0){
+                cerr<<"The index is out of range "<<endl;
+                return dummy;
+            }
+            else{
+                return data[y*sizex*numDirections + x*numDirections + direction];
+            }
         }
-        else
-            return data[y*sizex*numDirections + x*numDirections + direction];
-        */
-
-        //stream optimal
-        int index = direction*sizex*sizey + y*sizex + x;
-        if (index>=dataSize || index<0){
-            cout<<"data size = "<<dataSize<<endl;
-            cerr<<"The index is out of range "<<endl;
-            return dummy;
+        else{
+            //stream optimal
+            int index = direction*sizex*sizey + y*sizex + x;
+            if (index>=dataSize || index<0){
+                cout<<"data size = "<<dataSize<<endl;
+                cerr<<"The index is out of range "<<endl;
+                return dummy;
+            }
+            else{
+                return data[direction*sizex*sizey + y*sizex + x]; //
+            }
         }
-        else
-            return data[direction*sizex*sizey + y*sizex + x]; //
     }
 
     void SetValue(TYPE value){
@@ -62,12 +72,6 @@ public:
     inttype GetSizeX(){return sizex;}
     inttype GetSizeY(){return sizey;}
 
-    TYPE GetSum(){
-        TYPE sum = 0;
-        for (int i=0; i<dataSize; ++i)
-            sum += data[i];
-        return sum;
-    }
     void swap( LBMGrid<TYPE> & grid )
     {
       std::swap( sizex,grid.sizex );
@@ -83,6 +87,7 @@ public:
 private:
     inttype sizex,sizey,numDirections;
     inttype dataSize;
+    LbmGridMode mode;
     TYPE *data;
     TYPE dummy;
 };
