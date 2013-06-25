@@ -7,7 +7,7 @@
 
 using namespace std;
 
-#define FLUID 255
+#define FLUID 1
 #define OBSTACLE 0
 
 enum NAVIGATION{C,E,NE,N,NW,W,SW,S,SE};
@@ -327,7 +327,7 @@ void LBM::ReadPgm(const std::string filename){
             for (int x = 1; x <= sizex-2; ++x){
                 double value = 0;
                 infile>>value;
-                if (value == FLUID)
+                if (value == 255)
                     flags(x,y) = FLUID;
                 else
                     flags(x,y) = OBSTACLE;

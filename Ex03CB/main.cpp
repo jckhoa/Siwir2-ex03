@@ -22,9 +22,8 @@ int main(int argc, char** argv)
     //calculate operation time and print it
     gettimeofday(&end, NULL);
     double operation_time = (end.tv_sec - start.tv_sec)*1000000 + end.tv_usec - start.tv_usec;
-    operation_time /= 1000000;
     cout << "Operating time (s): " << operation_time << endl;
     cout<<"Number of fluid cells = "<<lbm.GetNumFluidCells()<<endl;
-    cout<<"Mega lattice site updates per second = "<<lbm.GetNumFluidCells()/operation_time/1000<<endl;
+    cout<<"Mega lattice site updates per second = "<<lbm.GetNumTimeSteps()*lbm.GetNumFluidCells()*1.0/operation_time<<endl;
     return 0;
 }

@@ -24,6 +24,7 @@ public:
     void ReadFile(string filename);
     void Solve();
     int GetNumFluidCells();
+    inttype GetNumTimeSteps(){ return timesteps;}
 private:
     void Stream();
     void Collide();
